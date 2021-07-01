@@ -4,12 +4,11 @@ import tushare as ts
 
 # 连接mangoDB
 
-
 def mongodbconnection():
     config = {
-        'host': 'ubuntu',
-        'username': 'admin',
-        'password': 'admin',
+        'host': 'localhost',
+        'username': 'tushare',
+        'password': 'tushare',
         'authSource': 'ts_stock',
     }
 
