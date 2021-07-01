@@ -151,7 +151,6 @@ def main():
     print("程序开始时间：{0}".format(str(t_start)))
 
     # 连接mangoDB
-
     db = dataconnection.mongodbconnection()
 
     # 连接tushare
