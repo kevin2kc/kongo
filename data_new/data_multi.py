@@ -1,5 +1,6 @@
 import threading
 import dataconnection
+import datetime
 
 import data_ts_stock_daily_to_mongodb
 import data_ts_finance_indicator_to_mongodb
@@ -9,6 +10,10 @@ import data_ts_daily_basic_to_mongodb
 import data_ts_stock_basic_to_mongodb
 
 if __name__ == '__main__':
+
+    print('---kongo开始下载数据---')
+    t_start=datetime.datetime.now()
+    print("kongo程序开始时间：{0}".format(str(t_start)))
 
     # 连接mangoDB
     db = dataconnection.Connection().getmongoconnection()
@@ -40,3 +45,8 @@ if __name__ == '__main__':
 
     daily_basic = threading.Thread(target=data_ts_daily_basic_to_mongodb.runallstock, args=(pro, db))
     daily_basic.start()
+
+    t_end = datetime.datetime.now()
+    print("kongo程序结束时间：{0}".format(str(t_end)))
+    print("kongo程序用时：{0}".format(t_end-t_start))
+    print('---kongo数据下载结束---')
