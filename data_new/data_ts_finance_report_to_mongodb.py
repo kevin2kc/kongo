@@ -1,6 +1,6 @@
 import pandas as pd
 import pymongo
-import dataconnection
+import dataconnection as dc
 import datetime
 
 
@@ -10,7 +10,7 @@ def prepstockdate(pro, db, stock_pool, method, col_name):
     try:
         results = db[col_name].find({'ts_code': stock_pool}).sort("end_date", pymongo.DESCENDING).limit(1)
     except Exception as exp:
-        print(stock_pool + " : ")
+        print("finance_report" + stock_pool + " : ")
         print(exp)
 
     if db[col_name].count_documents({'ts_code': stock_pool}) == 0:
@@ -24,7 +24,7 @@ def prepstockdate(pro, db, stock_pool, method, col_name):
                 df = pro.cashflow_vip(ts_code=stock_pool)
 
         except Exception as err:
-            print(stock_pool + " : ")
+            print("finance_report" + stock_pool + " : ")
             print(err)
 
         if not (df is None) and not df.empty:
@@ -33,7 +33,7 @@ def prepstockdate(pro, db, stock_pool, method, col_name):
             start_dt = datetime.datetime.strptime(df.iloc[-1]['end_date'], "%Y%m%d")
 
         else:
-            print("{0:s}:Tushare没有该股票数据，或者该股票太新".format(stock_pool))
+            print("finance_report {0:s}:Tushare没有该股票数据，或者该股票太新".format(stock_pool))
             start_dt = None
 
     else:
@@ -58,11 +58,11 @@ def loadstockfindatafromtushare(pro, stock_pool, st_date, ed_date, method):
             df = pro.cashflow_vip(ts_code=stock_pool, start_date=st_date, end_date=ed_date)
 
     except Exception as exp:
-        print(stock_pool + " : ")
+        print("finance_report" + stock_pool + " : ")
         print(exp)
 
     if (df is None) or df.empty:
-        print("{0:s}:已经取到最新数据".format(stock_pool))
+        print("finance_report {0:s}:已经取到最新数据".format(stock_pool))
 
     return df
 
@@ -74,20 +74,24 @@ def savestocktomongo(db, data, stock_pool, col_name):
         db[col_name].insert_many(result)
 
     except Exception as exp:
-        print(stock_pool + " : ")
+        print("finance_report" + stock_pool + " : ")
         print(exp)
 
 
 def runallstock(pro, db, method, col_name):
     # 获得跟股票数据池接口
-    data = pro.stock_basic(exchange='', list_status='L')
+    data = dc.Connection().getstockbasicallfrommongo()
     # 设定需要获取数据的股票池
     stock_pool = data['ts_code'].tolist()
+
+    print('---finance_report 开始下载数据---')
+    t_start=datetime.datetime.now()
+    print("finance_report 程序开始时间：{0}".format(str(t_start)))
 
     # 遍历所有股票
     for i in range(len(stock_pool)):
 
-        print("# 第{0:d}条数据下载，共{1:d}个 #".format(i + 1, len(stock_pool)))
+        print("# finance_report 第{0:d}条数据下载，共{1:d}个 #".format(i + 1, len(stock_pool)))
         # 获取单个股票最后开始时间
 
         start_dttime = prepstockdate(pro, db, stock_pool[i], method, col_name)
@@ -95,13 +99,13 @@ def runallstock(pro, db, method, col_name):
             continue
 
         if start_dttime > datetime.datetime.now():
-            print("{0:s}:已经取到最新数据".format(stock_pool[i]))
+            print("finance_report {0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
         else:
 
-            print("{0}:下载开始日期:{1}".format(stock_pool[i], start_dttime.strftime("%Y%m%d")))
-            print("{0}:下载结束日期:{1}".format(stock_pool[i], datetime.datetime.now().strftime('%Y%m%d')))
-            print("开始下载{0}数据".format(stock_pool[i]))
+            print("finance_report {0}:下载开始日期:{1}".format(stock_pool[i], start_dttime.strftime("%Y%m%d")))
+            print("finance_report {0}:下载结束日期:{1}".format(stock_pool[i], datetime.datetime.now().strftime('%Y%m%d')))
+            print("finance_report 开始下载{0}数据".format(stock_pool[i]))
             # 从tushare读取数据
             data = loadstockfindatafromtushare(pro, stock_pool[i], start_dttime.strftime("%Y%m%d"),
                                                datetime.datetime.now().strftime('%Y%m%d'), method)
@@ -110,10 +114,13 @@ def runallstock(pro, db, method, col_name):
                 savestocktomongo(db, data, stock_pool[i], col_name)
             else:
                 continue
-            print("结束下载{0}数据".format(stock_pool[i]))
+            print("finance_report 结束下载{0}数据".format(stock_pool[i]))
 
     # ========================================
-    print('---全部数据下载结束---')
+    t_end=datetime.datetime.now()
+    print("finance_report 程序结束时间：{0}".format(str(t_end)))
+    print("finance_report 程序用时：{0}".format(t_end-t_start))
+    print('---finance_report 全部数据下载结束---')
 
 
 def main():
@@ -123,10 +130,9 @@ def main():
     print("程序开始时间：{0}".format(str(t_start)))
 
     # 连接mangoDB
-    db = dataconnection.mongodbconnection()
-
+    db = dc.Connection().getmongoconnection()
     # 连接tushare
-    pro = dataconnection.tushareconnection()
+    pro = dc.Connection().gettushareconnection()
 
     # 运行主程序
     runallstock(pro, db, 'cashflow', 'cashflow')

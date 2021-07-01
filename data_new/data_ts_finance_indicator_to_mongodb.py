@@ -1,8 +1,7 @@
 import pandas as pd
 import pymongo
 import datetime
-import dataconnection
-
+import dataconnection as dc
 
 # 获取excel表上关于tushare调用的长参数，做全数据表
 
@@ -26,7 +25,7 @@ def prepstockdate(pro, db, stock_pool):
     try:
         results = db.stock_fin_indicator.find({'ts_code': stock_pool}).sort("end_date", pymongo.DESCENDING).limit(1)
     except Exception as exp:
-        print(stock_pool + " : ")
+        print("finance_indicator" + stock_pool + " : ")
         print(exp)
 
     if db.stock_fin_indicator.count_documents({'ts_code': stock_pool}) == 0:
@@ -34,7 +33,7 @@ def prepstockdate(pro, db, stock_pool):
         try:
             df = pro.fina_indicator_vip(ts_code=stock_pool)
         except Exception as err:
-            print(stock_pool + " : ")
+            print("finance_indicator" + stock_pool + " : ")
             print(err)
 
         if not (df is None):
@@ -43,7 +42,7 @@ def prepstockdate(pro, db, stock_pool):
             start_dt = datetime.datetime.strptime(df.iloc[-1][2], "%Y%m%d")
 
         else:
-            print("{0:s}:Tushare没有该股票数据，或者该股票太新".format(stock_pool))
+            print("finance_indicator {0:s}:Tushare没有该股票数据，或者该股票太新".format(stock_pool))
             start_dt = None
 
     else:
@@ -63,11 +62,11 @@ def loadstockfinindicatorfromtushare(pro, stock_pool, st_date, ed_date, field_st
         df = pro.fina_indicator_vip(ts_code=stock_pool, start_date=st_date, end_date=ed_date, fields=field_str)
 
     except Exception as exp:
-        print(stock_pool + " : ")
+        print("finance_indicator" + stock_pool + " : ")
         print(exp)
 
     if df is None:
-        print("{0:s}:已经取到最新数据".format(stock_pool))
+        print("finance_indicator {0:s}:已经取到最新数据".format(stock_pool))
 
     return df
 
@@ -79,23 +78,27 @@ def savestocktomongo(db, data, stock_pool):
         db.stock_fin_indicator.insert_many(result)
 
     except Exception as exp:
-        print(stock_pool + " : ")
+        print("finance_indicator" + stock_pool + " : ")
         print(exp)
 
 
 def runallstock(pro, db):
     # 获得跟股票数据池接口
-    data = pro.stock_basic(exchange='', list_status='L')
+    data = dc.Connection().getstockbasicallfrommongo()
     # 设定需要获取数据的股票池
     stock_pool = data['ts_code'].tolist()
 
     # 获取字段参数
     field_str = getparameterfromexcel("ts_finance_indicator_all_fields.xlsx", "name")
 
+    print('---finance_indicator 开始下载数据---')
+    t_start=datetime.datetime.now()
+    print("finance_indicator 程序开始时间：{0}".format(str(t_start)))
+
     # 遍历所有股票
     for i in range(len(stock_pool)):
 
-        print("# 第{0:d}条数据下载，共{1:d}个 #".format(i + 1, len(stock_pool)))
+        print("# finance_indicator 第{0:d}条数据下载，共{1:d}个 #".format(i + 1, len(stock_pool)))
         # 获取单个股票最后开始时间
 
         start_dttime = prepstockdate(pro, db, stock_pool[i])
@@ -103,42 +106,45 @@ def runallstock(pro, db):
             continue
 
         if start_dttime > datetime.datetime.now():
-            print("{0:s}:已经取到最新数据".format(stock_pool[i]))
+            print("finance_indicator {0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
         else:
 
             start_dtstring = start_dttime.strftime("%Y%m%d")
             end_dttime = datetime.datetime.now()
             end_dtstring = (end_dttime.strftime('%Y%m%d'))
-            print("{0}:下载开始日期:{1}".format(stock_pool[i], start_dtstring))
-            print("{0}:下载结束日期:{1}".format(stock_pool[i], end_dtstring))
+            print("finance_indicator {0}:下载开始日期:{1}".format(stock_pool[i], start_dtstring))
+            print("finance_indicator {0}:下载结束日期:{1}".format(stock_pool[i], end_dtstring))
 
-            print("开始下载{0}数据".format(stock_pool[i]))
+            print("finance_indicator 开始下载{0}数据".format(stock_pool[i]))
             # 从tushare读取数据
             data = loadstockfinindicatorfromtushare(pro, stock_pool[i], start_dtstring, end_dtstring, field_str)
             # 保存数据到mongo
             savestocktomongo(db, data, stock_pool[i])
-            print("结束下载{0}数据".format(stock_pool[i]))
+            print("finance_indicator 结束下载{0}数据".format(stock_pool[i]))
 
     # ========================================
-    print('---全部数据下载结束---')
+    t_end=datetime.datetime.now()
+    print("finance_indicator 程序结束时间：{0}".format(str(t_end)))
+    print("finance_indicator 程序用时：{0}".format(t_end-t_start))
+    print('---finance_indicator 全部数据下载结束---')
 
 
-if __name__ == '__main__':
+def main():
     # ===============建立数据库连接,剔除已入库的部分============================
     # connect database
-    t_start = datetime.datetime.now()
-    print("程序开始时间：{0}".format(str(t_start)))
+    print("程序开始时间：{0}".format(str(datetime.datetime.now())))
 
     # 连接mangoDB
-    db = dataconnection.mongodbconnection()
-
+    db = dc.Connection().getmongoconnection()
     # 连接tushare
-    pro = dataconnection.tushareconnection()
+    pro = dc.Connection().gettushareconnection()
 
     # 运行主程序
     runallstock(pro, db)
 
-    t_end = datetime.datetime.now()
-    print("程序结束时间：{0}".format(str(t_end)))
-    print("共花费时间：{0}".format(str(t_end - t_start)))
+    print("程序结束时间：{0}".format(str(datetime.datetime.now())))
+
+
+if __name__ == '__main__':
+    main()
