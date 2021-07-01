@@ -55,7 +55,7 @@ def loadStockFromTushareByYear(pro, stock_pool, st_date, ed_date):
         df = ts.pro_bar(ts_code=stock_pool, api=pro, start_date=st_date, end_date=ed_date,
                         factors=["tor", "vr"], adjfactor=True)
 
-        df_qfq = ts.pro_bar(ts_code=stock_pool, api=pro, adj="qfq", start_date=st_date, end_date=ed_date,
+        df_qfq = ts.pro_bar(ts_code=stock_pool, api=pro, start_date=st_date, end_date=ed_date,
                             adjfactor=True)
 
         df_hfq = ts.pro_bar(ts_code=stock_pool, api=pro, adj="hfq", start_date=st_date, end_date=ed_date,
