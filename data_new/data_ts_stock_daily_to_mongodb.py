@@ -26,20 +26,23 @@ def prepstockdate(db, pro, stock_pool, ed_date, col_name):
             print(col_name + stock_pool + " : ")
             print(err)
 
-        if not (df is None):
+        if not df.empty:
             df = df["trade_date"]
-
-        if not (df1 is None):
+        if not df1.empty:
             df1 = df1["trade_date"]
             df = df.append(df1, ignore_index=True, verify_integrity=True)
-        if not (df1 is None):
+        if not df2.empty:
             df2 = df2["trade_date"]
             df = df.append(df2, ignore_index=True, verify_integrity=True)
 
-        df.sort_values(ascending=False, inplace=True)
-        start_dt = datetime.datetime.strptime(df.iloc[-1], "%Y%m%d")
-
+        if df is not None and not df.empty:
+            df_re = df.copy()
+            df_re.sort_values(ascending=False, inplace=True)
+            start_dt = datetime.datetime.strptime(df_re.iloc[-1], "%Y%m%d")
+        else:
+            start_dt = None
     else:
+
         last_date = datetime.datetime.strptime(results[0]['trade_date'], '%Y%m%d')
         start_dt = (last_date + datetime.timedelta(days=1))
         start_dt.replace(hour=18)
@@ -103,7 +106,7 @@ def loadstockfromtushare(pro, adj, stock_pool, start_dttime, end_dttime):
 
 def savestocktomongo(db, data, stock_pool, col_name):
 
-    if not data.empty:
+    if data is not None:
         try:
             result = data.to_dict('records')
             db[col_name].insert_many(result)
@@ -120,7 +123,7 @@ def runallstock(pro, db, adj, col_name):
     print(col_name + "程序开始时间：{0}".format(str(t_start)))
 
     # 获得跟股票数据池接口
-    data = pro.stock_basic(exchange='', list_status='L')
+    data = dc.Connection().getstockbasicallfrommongo()
     # 设定需要获取数据的股票池
     stock_pool = data['ts_code'].tolist()
 
@@ -131,7 +134,10 @@ def runallstock(pro, db, adj, col_name):
         # 获取单个股票最后开始时间
         start_dttime = prepstockdate(db, pro, stock_pool[i], datetime.datetime.now(), col_name)
 
-        if start_dttime > datetime.datetime.now():
+        if start_dttime is None:
+            print(col_name + "{0:s}:已经取到最新数据".format(stock_pool[i]))
+            continue
+        elif start_dttime > datetime.datetime.now():
             print(col_name + "{0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
         else:
@@ -164,7 +170,7 @@ def main():
     pro = dc.Connection().gettushareconnection()
 
     # 运行主程序
-    runallstock(pro, db, 'wfq', 'stock_all_wfq')
+    runallstock(pro, db, 'qfq', 'stock_all_qfq')
 
     t_end = datetime.datetime.now()
     print("程序结束时间：{0}".format(str(t_end)))

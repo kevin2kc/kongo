@@ -36,9 +36,8 @@ def prepstockdate(pro, db, stock_pool):
             print("finance_indicator" + stock_pool + " : ")
             print(err)
 
-        if not (df is None):
+        if df is not None and not df.empty:
             df.sort_values(by=["end_date"], ascending=False, inplace=True)
-
             start_dt = datetime.datetime.strptime(df.iloc[-1][2], "%Y%m%d")
 
         else:
@@ -92,7 +91,7 @@ def runallstock(pro, db):
     field_str = getparameterfromexcel("ts_finance_indicator_all_fields.xlsx", "name")
 
     print('---finance_indicator 开始下载数据---')
-    t_start=datetime.datetime.now()
+    t_start = datetime.datetime.now()
     print("finance_indicator 程序开始时间：{0}".format(str(t_start)))
 
     # 遍历所有股票
@@ -103,9 +102,9 @@ def runallstock(pro, db):
 
         start_dttime = prepstockdate(pro, db, stock_pool[i])
         if start_dttime is None:
+            print("finance_indicator {0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
-
-        if start_dttime > datetime.datetime.now():
+        elif start_dttime > datetime.datetime.now():
             print("finance_indicator {0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
         else:
@@ -124,7 +123,7 @@ def runallstock(pro, db):
             print("finance_indicator 结束下载{0}数据".format(stock_pool[i]))
 
     # ========================================
-    t_end=datetime.datetime.now()
+    t_end = datetime.datetime.now()
     print("finance_indicator 程序结束时间：{0}".format(str(t_end)))
     print("finance_indicator 程序用时：{0}".format(t_end-t_start))
     print('---finance_indicator 全部数据下载结束---')

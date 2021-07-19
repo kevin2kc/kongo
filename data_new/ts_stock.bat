@@ -1,0 +1,2 @@
+call C:\Users\kevin\anaconda3\Scripts\activate.bat C:\Users\kevin\anaconda3\envs\pycharm
+C:\Users\kevin\anaconda3\envs\pycharm\python.exe C:/Users/kevin/PycharmProjects/kongo/data_new/data_threading.py

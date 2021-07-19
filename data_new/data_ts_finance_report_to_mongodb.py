@@ -29,7 +29,6 @@ def prepstockdate(pro, db, stock_pool, method, col_name):
 
         if not (df is None) and not df.empty:
             df.sort_values(by=["end_date"], ascending=False, inplace=True)
-
             start_dt = datetime.datetime.strptime(df.iloc[-1]['end_date'], "%Y%m%d")
 
         else:
@@ -68,14 +67,14 @@ def loadstockfindatafromtushare(pro, stock_pool, st_date, ed_date, method):
 
 
 def savestocktomongo(db, data, stock_pool, col_name):
-    try:
+    if data is not None:
+        try:
+            result = data.to_dict(orient='records')
+            db[col_name].insert_many(result)
 
-        result = data.to_dict(orient='records')
-        db[col_name].insert_many(result)
-
-    except Exception as exp:
-        print("finance_report" + stock_pool + " : ")
-        print(exp)
+        except Exception as exp:
+            print("finance_report" + stock_pool + " : ")
+            print(exp)
 
 
 def runallstock(pro, db, method, col_name):
@@ -85,7 +84,7 @@ def runallstock(pro, db, method, col_name):
     stock_pool = data['ts_code'].tolist()
 
     print('---finance_report 开始下载数据---')
-    t_start=datetime.datetime.now()
+    t_start = datetime.datetime.now()
     print("finance_report 程序开始时间：{0}".format(str(t_start)))
 
     # 遍历所有股票
@@ -96,9 +95,9 @@ def runallstock(pro, db, method, col_name):
 
         start_dttime = prepstockdate(pro, db, stock_pool[i], method, col_name)
         if start_dttime is None:
+            print("finance_report {0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
-
-        if start_dttime > datetime.datetime.now():
+        elif start_dttime > datetime.datetime.now():
             print("finance_report {0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
         else:
@@ -110,14 +109,11 @@ def runallstock(pro, db, method, col_name):
             data = loadstockfindatafromtushare(pro, stock_pool[i], start_dttime.strftime("%Y%m%d"),
                                                datetime.datetime.now().strftime('%Y%m%d'), method)
             # 保存数据到mongo
-            if not (data is None):
-                savestocktomongo(db, data, stock_pool[i], col_name)
-            else:
-                continue
+            savestocktomongo(db, data, stock_pool[i], col_name)
             print("finance_report 结束下载{0}数据".format(stock_pool[i]))
 
     # ========================================
-    t_end=datetime.datetime.now()
+    t_end = datetime.datetime.now()
     print("finance_report 程序结束时间：{0}".format(str(t_end)))
     print("finance_report 程序用时：{0}".format(t_end-t_start))
     print('---finance_report 全部数据下载结束---')
@@ -135,7 +131,7 @@ def main():
     pro = dc.Connection().gettushareconnection()
 
     # 运行主程序
-    runallstock(pro, db, 'cashflow', 'cashflow')
+    runallstock(pro, db, 'income', 'stock_report_income')
 
     t_end = datetime.datetime.now()
     print("程序结束时间：{0}".format(str(t_end)))

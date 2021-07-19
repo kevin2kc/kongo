@@ -14,7 +14,7 @@ def prepstockdate(pro, db, stock_pool, ed_date):
     try:
         results = db.stock_daily_basic.find({'ts_code': stock_pool}).sort("trade_date", pymongo.DESCENDING).limit(1)
     except Exception as exp:
-        print("daily_basic"+ stock_pool + " : ")
+        print("daily_basic" + stock_pool + " : ")
         print(exp)
 
     if db.stock_daily_basic.count_documents({'ts_code': stock_pool}) == 0:
@@ -29,21 +29,21 @@ def prepstockdate(pro, db, stock_pool, ed_date):
             print("daily_basic" + stock_pool + " : ")
             print(err)
 
-        if not (df is None):
+        if not df.empty:
             df = df["trade_date"]
-        if not (df1 is None):
+        if not df1.empty:
             df1 = df1["trade_date"]
             df = df.append(df1, ignore_index=True, verify_integrity=True)
-        if not (df1 is None):
+        if not df2.empty:
             df2 = df2["trade_date"]
             df = df.append(df2, ignore_index=True, verify_integrity=True)
 
-        df.sort_values(ascending=False, inplace=True)
-
-        if not df.empty:
-            start_dt = datetime.datetime.strptime(df.iloc[-1], "%Y%m%d")
+        if df is not None and not df.empty:
+            df_re = df.copy()
+            df_re.sort_values(ascending=False, inplace=True)
+            start_dt = datetime.datetime.strptime(df_re.iloc[-1], "%Y%m%d")
         else:
-            start_dt = datetime.datetime.now()
+            start_dt = None
 
     else:
         last_date = datetime.datetime.strptime(results[0]['trade_date'], '%Y%m%d')
@@ -108,12 +108,14 @@ def loadstockfromtushare(pro, stock_pool, start_dttime, end_dttime):
 
 
 def savestocktomongo(db, data, stock_pool):
-    try:
-        result = data.to_dict('records')
-        db.stock_daily_basic.insert_many(result)
-    except Exception as exp:
-        print("daily_basic" + stock_pool + " : ")
-        print(exp)
+
+    if data is not None:
+        try:
+            result = data.to_dict('records')
+            db.stock_daily_basic.insert_many(result)
+        except Exception as exp:
+            print("daily_basic" + stock_pool + " : ")
+            print(exp)
 
 
 def runallstock(pro, db):
@@ -123,7 +125,7 @@ def runallstock(pro, db):
     stock_pool = data['ts_code'].tolist()
 
     print('---daily_basic 开始下载数据---')
-    t_start=datetime.datetime.now()
+    t_start = datetime.datetime.now()
     print("daily_basic 程序开始时间：{0}".format(str(t_start)))
 
     # 遍历所有股票
@@ -132,8 +134,10 @@ def runallstock(pro, db):
         print("# daily_basic 第{0:d}条数据下载，共{1:d}个 #".format(i + 1, len(stock_pool)))
         # 获取单个股票最后开始时间
         start_dttime = prepstockdate(pro, db, stock_pool[i], datetime.datetime.now())
-
-        if start_dttime > datetime.datetime.now():
+        if start_dttime is None:
+            print("daily_basic {0:s}:已经取到最新数据".format(stock_pool[i]))
+            continue
+        elif start_dttime > datetime.datetime.now():
             print("daily_basic {0:s}:已经取到最新数据".format(stock_pool[i]))
             continue
         else:
@@ -148,7 +152,7 @@ def runallstock(pro, db):
             savestocktomongo(db, data, stock_pool[i])
             print("daily_basic 结束下载{0}数据".format(stock_pool[i]))
     # ========================================
-    t_end=datetime.datetime.now()
+    t_end = datetime.datetime.now()
     print("daily_basic 程序结束时间：{0}".format(str(t_end)))
     print("daily_basic 程序用时：{0}".format(t_end-t_start))
     print('---daily_basic 全部数据下载结束---')

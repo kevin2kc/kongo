@@ -5,7 +5,7 @@ import pandas as pd
 
 # 连接tushare
 
-class Connection:
+class Connection(object):
 
     def __init__(self):
 
@@ -34,9 +34,18 @@ class Connection:
 
         df, results = pd.DataFrame(), pd.DataFrame()
         try:
-            results = self.db['stock_basic'].find({'list_status': {'$eq': 'L'}}, {'ts_code': 1})
+            results = self.db['stock_basic'].find({'list_status': {'$eq': 'L'}}, {'_id': 0, 'ts_code': 1})
         except Exception as exp:
             print(exp)
         df = pd.DataFrame(results)
+        return df
 
+    def getindexbasicallfrommongo(self):
+
+        df, results = pd.DataFrame(), pd.DataFrame()
+        try:
+            results = self.db['index_basic'].find({}, {'_id': 0, 'ts_code': 1})
+        except Exception as exp:
+            print(exp)
+        df = pd.DataFrame(results)
         return df

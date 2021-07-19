@@ -1,0 +1,35 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}A股PVGO计算{% endblock %}
+
+{% block navbar %}
+<nav class="navbar navbar-inverse bg-light" role="navigation">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-bs-target=".navbar-collapse">
+        <span class="sr-only">Toogle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">股票分析</a>
+      <ul class="nav navbar-nav">
+          <li><a  href="/zb">主板</a></li>
+          <li><a href="/zxb">中小板</a></li>
+          <li><a href="/cyb">创业板</a></li>
+          <li><a href="/kcb">科创板</a></li>
+      </ul>
+
+    </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="bg-light p-5 rounded">
+    {% block page_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}
